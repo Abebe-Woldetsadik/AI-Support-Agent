@@ -436,9 +436,29 @@ async def invoke(payload, context=None):
             agent_core_browser.browser,
         ]
 
-        gateway_client = MCPClient(lambda: streamable_http_client(GATEWAY_URL))
+        gateway_client = MCPClient(
+            lambda: streamable_http_client(GATEWAY_URL)
+        )
+        gateway_tools = []
+
         with gateway_client:
-            gateway_tools = gateway_client.list_tools_sync()
+            try:
+                gateway_tools = gateway_client.list_tools_sync()
+
+                logger.info(
+                    "Gateway connected successfully. Loaded %d tools.",
+                    len(gateway_tools),
+                )
+
+            except TimeoutError:
+                logger.exception("Gateway tool loading timed out")
+
+            except ConnectionError:
+                logger.exception("Gateway connection failed")
+
+            except Exception as exc:
+                logger.exception("Gateway tool loading failed: %s", exc)
+
             all_tools = tools + list(gateway_tools)
 
             agent = Agent(
